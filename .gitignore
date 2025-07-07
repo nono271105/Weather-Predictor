@@ -10,8 +10,7 @@ venv/
 
 # Fichier contenant des variables sensibles
 .env
-temperature_observations.csv
-data/models/*.pkl
+
 
 # Fichiers de logs
 *.log
