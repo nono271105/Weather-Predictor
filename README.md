@@ -1,4 +1,5 @@
 # Prédicteur de Météo Locale ⛅️
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Ce projet est une application de bureau en Python permettant de prédire la météo locale (température maximale, probabilité de pluie, humidité, pression, vent) pour une ville donnée, en combinant les données de l'API OpenWeatherMap et un modèle de machine learning entraîné sur vos propres observations.
 
