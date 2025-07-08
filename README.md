@@ -1,17 +1,15 @@
 # Prédicteur de Météo Locale ⛅️
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Ce projet est une application de bureau en Python permettant de prédire la météo locale (température maximale, probabilité de pluie, humidité, pression, vent) pour une ville donnée, en combinant les données de l'API OpenWeatherMap et un modèle de machine learning entraîné sur vos propres observations.
+Ce projet est une application de bureau en Python permettant de prédire la météo locale (température maximale, probabilité de pluie, humidité, pression, vent) pour une ville donnée, en combinant les données de l'API OpenWeatherMap et un modèle de machine learning entraîné sur vos observations.
 
 ## Fonctionnalités
 
-- Interface graphique moderne avec PyQt5
+- Interface graphique avec PyQt5
 - Recherche météo par ville
 - Affichage des prévisions pour demain et après-demain (température, pluie, humidité, pression, vent)
-- Icônes météo dynamiques
 - Sauvegarde automatique des observations dans un fichier CSV
 - Entraînement et utilisation d'un modèle de prédiction (RandomForest)
-- Support multi-plateforme
 
 ## Structure du projet
 
@@ -19,8 +17,7 @@ Ce projet est une application de bureau en Python permettant de prédire la mét
 .
 ├── app/
 │   ├── main.py           # Interface graphique principale
-│   ├── weather_api.py    # Récupération des données météo via API
-│   └── __init__.py
+│   └── weather_api.py    # Récupération des données météo via API
 ├── assets/
 │   └── icons/            # Icônes météo (PNG, GIF)
 ├── data/
@@ -75,7 +72,6 @@ Un nouveau modèle sera sauvegardé dans `data/models/`.
 
 - Les observations sont ajoutées automatiquement à chaque recherche météo.
 - Le modèle ML est utilisé uniquement s'il existe au moins un fichier `.pkl` dans `data/models/`.
-- Les icônes météo doivent être placées dans `assets/icons/` (voir exemples fournis).
 
 ## Dépendances principales
 
@@ -87,4 +83,4 @@ Un nouveau modèle sera sauvegardé dans `data/models/`.
 
 ## Licence
 
-Ce projet est fourni à des fins éducatives.
+Ce projet a été fait à des fins de curiosité personnelle.
