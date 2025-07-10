@@ -5,15 +5,15 @@ import csv
 from datetime import datetime, timedelta
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-    QPushButton, QMessageBox, QFrame, QScrollArea
+    QPushButton, QMessageBox, QFrame, QScrollArea, QSizePolicy # Import QSizePolicy
 )
 from PyQt5.QtGui import QFont, QPixmap, QMovie
-from PyQt5.QtCore import Qt, QSize, QTimer 
+from PyQt5.QtCore import Qt, QSize, QTimer
 
 # Import des modules locaux
-from app.weather_api import fetch_weather_data 
-import joblib 
-import pandas as pd 
+from app.weather_api import fetch_weather_data
+import joblib
+import pandas as pd
 
 # --- Chemins des fichiers et dossiers ---
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -31,99 +31,110 @@ class WeatherApp(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Prédiction Météo Locale")
-        self.showMaximized() 
+        # Use a fixed size or set a minimum size and allow stretching for better control
+        # self.showMaximized() # Replaced with setFixedSize or initial geometry
+        self.setGeometry(100, 100, 800, 600) # Initial window size, you can adjust this
 
         self.setStyleSheet("""
             QWidget {
-                background-color: #f0f4f8; 
-                font-family: Arial, sans-serif;
+                background-color: #f0f4f8; /* Light blue-gray background */
+                font-family: 'SF Pro Display', 'Arial', sans-serif; /* Closer to iOS font */
             }
             QLabel {
-                color: #334e68; 
+                color: #334e68; /* Dark blue-gray text */
                 font-size: 14px;
             }
             QLineEdit {
-                border: 1px solid #aebfd4; 
-                border-radius: 5px;
-                padding: 8px;
-                font-size: 14px;
+                border: 1px solid #aebfd4; /* Soft blue-gray border */
+                border-radius: 8px; /* More rounded corners */
+                padding: 10px 12px; /* Increased padding for height */
+                font-size: 16px; /* Slightly larger font */
                 background-color: #ffffff;
                 color: black;
             }
-            #cityInput { 
-                min-width: 250px;
+            #cityInput {
+                min-width: 300px; /* Wider input field */
+                max-width: 400px; /* Limit max width */
             }
             QPushButton {
-                background-color: #007bff;
+                background-color: #007bff; /* Standard blue */
                 color: white;
                 border: none;
-                border-radius: 5px;
-                padding: 10px 15px;
-                font-size: 14px;
+                border-radius: 8px; /* More rounded corners */
+                padding: 10px 20px; /* Increased padding for button size */
+                font-size: 16px; /* Larger font for button */
                 font-weight: bold;
+                min-width: 100px; /* Ensure button has minimum width */
             }
             QPushButton:hover {
-                background-color: #0056b3;
+                background-color: #0056b3; /* Darker blue on hover */
             }
-            QFrame {
+            QFrame#weatherInfoFrame { /* Specific ID for the info box */
                 background-color: white;
                 border-radius: 10px;
-                padding: 20px;
-                box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+                padding: 25px; /* More padding inside the frame */
+                /* box-shadow is not directly supported in QSS, rely on border/background */
+                border: 1px solid #d0dbe7; /* Subtle border for separation */
+                margin-top: 20px; /* Space above the info frame */
+                margin-bottom: 20px;
             }
-            #weatherInfoFrame { 
-                background-color: #e0e7ee; 
-                border: 1px solid #aebfd4;
+            #statusLabel { /* New style for the status label */
+                font-size: 14px;
+                color: #555;
+                font-style: italic;
+                margin-top: 10px;
+                margin-bottom: 10px;
             }
-            .infoLabel {
-                font-size: 16px;
-                margin-bottom: 5px;
+            #weatherIconLabel {
+                /* Handled by setFixedSize and setScaledContents in Python */
+                border: none; /* No explicit border as in the screenshot */
+                background-color: transparent; /* No background for the icon label itself */
+                padding: 0px;
+            }
+            #cityDisplayLabel {
+                font-size: 24px; /* Larger font for main city display */
+                font-weight: bold;
+                color: #2c3e50; /* Darker text */
+                margin-bottom: 15px; /* More space below */
             }
             .tempLabel {
-                font-size: 18px;
+                font-size: 18px; /* Consistent temp label size */
                 font-weight: bold;
-                color: #007bff;
+                color: #007bff; /* Blue for temperature */
+                margin-bottom: 5px;
             }
-            .probLabel {
-                font-size: 16px;
-                color: #666;
-            }
-            #dateTimeLabel { 
-                font-size: 14px;
-                font-weight: bold;
+            .probLabel, .infoLabel {
+                font-size: 16px; /* Standard info label size */
                 color: #555;
-                margin-bottom: 10px;
+                margin-bottom: 5px;
             }
-            #weatherIconLabel { 
-                /* Les propriétés de taille min/max sont mieux gérées par setFixedSize en Python */
-                /* margin: 10px auto; pour le centrage horizontal via le layout parent */
-                border: 2px solid #ddd;
-                border-radius: 8px;
-                padding: 5px;
-                background-color: #ffffff;
-            }
-            #cityDisplayLabel { 
-                font-size: 20px;
-                font-weight: bold;
-                color: #2c3e50;
-                margin-bottom: 10px;
+            #dateTimeLabel {
+                font-size: 14px;
+                font-weight: normal; /* Not bold as in original, matches screenshot more */
+                color: #777; /* Softer grey */
+                margin-bottom: 15px;
             }
         """)
 
         self.init_ui()
-        self.load_model() 
-        self.start_clock() 
+        self.load_model()
+        self.start_clock()
 
     def init_ui(self):
-        main_layout = QVBoxLayout(self) 
+        main_layout = QVBoxLayout(self)
+        main_layout.setAlignment(Qt.AlignTop | Qt.AlignCenter) # Align content to top and center
+        main_layout.setContentsMargins(50, 30, 50, 30) # Overall margins
 
-        self.scroll_area = QScrollArea(self) 
-        self.scroll_area.setWidgetResizable(True) 
-        
-        self.scroll_content_widget = QWidget() 
-        self.scroll_content_layout = QVBoxLayout(self.scroll_content_widget) 
-        self.scroll_content_layout.setContentsMargins(20, 20, 20, 20)
-        self.scroll_content_layout.setSpacing(15)
+        # Use a QScrollArea for the content to ensure it's scrollable on smaller screens
+        self.scroll_area = QScrollArea(self)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff) # No horizontal scrollbar
+
+        self.scroll_content_widget = QWidget()
+        self.scroll_content_layout = QVBoxLayout(self.scroll_content_widget)
+        self.scroll_content_layout.setAlignment(Qt.AlignTop | Qt.AlignCenter) # Center content within scroll area
+        self.scroll_content_layout.setContentsMargins(0, 0, 0, 0) # No extra margins inside scroll content
+        self.scroll_content_layout.setSpacing(15) # Default spacing between elements
 
         # Date et Heure Actuelles
         self.date_time_label = QLabel()
@@ -132,106 +143,133 @@ class WeatherApp(QWidget):
         self.scroll_content_layout.addWidget(self.date_time_label)
 
         # Zone de recherche
-        search_layout = QHBoxLayout()
-        search_layout.setAlignment(Qt.AlignCenter)
-        
-        self.city_label = QLabel("Entrez le nom de la ville:")
-        self.city_label.setFont(QFont("Arial", 12))
-        search_layout.addWidget(self.city_label)
+        search_container = QHBoxLayout() # Use a horizontal layout for input and button
+        search_container.setAlignment(Qt.AlignCenter) # Center the search bar horizontally
+
+        city_input_layout = QHBoxLayout() # A horizontal layout for the "Ville" label and QLineEdit
+        city_input_layout.setAlignment(Qt.AlignCenter) # Center elements within this mini-layout
+
+        self.city_label = QLabel("Ville") # Changed text to just "Ville" as in screenshot
+        self.city_label.setFont(QFont("Arial", 14)) # Slightly larger font for "Ville"
+        city_input_layout.addWidget(self.city_label)
 
         self.city_input = QLineEdit()
-        self.city_input.setPlaceholderText("Ex: Paris, Londres...")
+        self.city_input.setPlaceholderText("Paris, Lyon, ...") # Updated placeholder text
         self.city_input.setObjectName("cityInput")
-        self.city_input.returnPressed.connect(self.get_weather) 
-        search_layout.addWidget(self.city_input)
+        self.city_input.returnPressed.connect(self.get_weather)
+        city_input_layout.addWidget(self.city_input)
 
+        search_button_layout = QHBoxLayout() # Layout for the button to ensure it's distinct
+        search_button_layout.setAlignment(Qt.AlignCenter)
         self.search_button = QPushButton("Rechercher")
         self.search_button.clicked.connect(self.get_weather)
-        search_layout.addWidget(self.search_button)
+        search_button_layout.addWidget(self.search_button)
 
-        self.scroll_content_layout.addLayout(search_layout)
+        # Add the input and button layouts to the main search container
+        search_container.addLayout(city_input_layout)
+        search_container.addSpacing(20) # Space between input and button
+        search_container.addLayout(search_button_layout)
+
+        self.scroll_content_layout.addLayout(search_container)
+
+        # Status Label (like the spinning indicator in the screenshot)
+        self.status_label = QLabel("Status...") # Initial status text
+        self.status_label.setObjectName("statusLabel")
+        self.status_label.setAlignment(Qt.AlignCenter)
+        self.scroll_content_layout.addWidget(self.status_label)
+
 
         # Cadre d'informations météo
         self.weather_info_frame = QFrame()
         self.weather_info_frame.setObjectName("weatherInfoFrame")
-        weather_layout = QVBoxLayout()
-        weather_layout.setAlignment(Qt.AlignCenter)
+        # Ensure the frame expands horizontally but stays centered
+        self.weather_info_frame.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed) # Fixed height, preferred width
 
-        self.city_display_label = QLabel("Météo pour [Ville], [Pays]")
-        self.city_display_label.setObjectName("cityDisplayLabel") 
+        weather_layout = QVBoxLayout(self.weather_info_frame)
+        weather_layout.setAlignment(Qt.AlignTop | Qt.AlignCenter) # Align content to top and center within frame
+        weather_layout.setSpacing(10) # Reduced spacing within the info frame
+
+        self.city_display_label = QLabel("Météo pour (Ville)") # Updated initial text
+        self.city_display_label.setObjectName("cityDisplayLabel")
         self.city_display_label.setAlignment(Qt.AlignCenter)
         weather_layout.addWidget(self.city_display_label)
 
-        # Label pour l'icône météo - CORRECTION ICI
+        # Label for the weather icon
         self.weather_icon_label = QLabel()
         self.weather_icon_label.setObjectName("weatherIconLabel")
         self.weather_icon_label.setAlignment(Qt.AlignCenter)
-        # Définir une taille fixe appropriée pour l'icône, en tenant compte du padding et du border
-        # L'icône de 64x64 + 2*padding(5) + 2*border(2) = 64 + 10 + 4 = 78x78.
-        # Donc, 80x80 est une bonne taille de label pour une icône de 64x64.
-        self.weather_icon_label.setFixedSize(80, 80) 
-        # setScaledContents(True) est essentiel pour que l'image s'adapte au label
-        self.weather_icon_label.setScaledContents(True) 
+        self.weather_icon_label.setFixedSize(70, 70) # Adjusted size slightly to match common icon sizes better
+        self.weather_icon_label.setScaledContents(True)
         weather_layout.addWidget(self.weather_icon_label)
-        
-        weather_layout.addSpacing(15)
+
+        weather_layout.addSpacing(15) # More space before weather details
 
         # Demain
         self.temp_demain_label = QLabel("Temp. Max Demain: --°C (Modèle) | --°C (API)")
         self.temp_demain_label.setObjectName("tempLabel")
         weather_layout.addWidget(self.temp_demain_label)
 
-        self.prob_pluie_demain_label = QLabel("Probabilité de Pluie Demain: --%")
+        self.prob_pluie_demain_label = QLabel("Probabilité de pluie demain : --%")
         self.prob_pluie_demain_label.setObjectName("probLabel")
         weather_layout.addWidget(self.prob_pluie_demain_label)
 
-        self.humidity_demain_label = QLabel("Humidité Demain: --%")
-        self.humidity_demain_label.setObjectName("infoLabel")
-        weather_layout.addWidget(self.humidity_demain_label)
-
-        self.pressure_demain_label = QLabel("Pression Demain: -- hPa")
-        self.pressure_demain_label.setObjectName("infoLabel")
-        weather_layout.addWidget(self.pressure_demain_label)
-
-        self.wind_speed_demain_label = QLabel("Vent Demain: -- m/s")
+        self.wind_speed_demain_label = QLabel("Vent demain : -- m/s")
         self.wind_speed_demain_label.setObjectName("infoLabel")
         weather_layout.addWidget(self.wind_speed_demain_label)
-        
+
+        # Remove humidity and pressure for "demain" as per screenshot
+        # self.humidity_demain_label = QLabel("Humidité Demain: --%")
+        # self.humidity_demain_label.setObjectName("infoLabel")
+        # weather_layout.addWidget(self.humidity_demain_label)
+
+        # self.pressure_demain_label = QLabel("Pression Demain: -- hPa")
+        # self.pressure_demain_label.setObjectName("infoLabel")
+        # weather_layout.addWidget(self.pressure_demain_label)
+
         weather_layout.addSpacing(15)
-        weather_layout.addWidget(self.create_separator()) 
+        # Add a light gray separator as seen in the screenshot
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Plain) # Use Plain for a flat line
+        separator.setStyleSheet("color: #e0e0e0; border-top: 1px solid #e0e0e0;") # Light gray line
+        weather_layout.addWidget(separator)
+        weather_layout.addSpacing(15)
 
         # Après-demain
-        self.temp_apres_demain_label = QLabel("Temp. Max Après-Demain: --°C")
+        self.temp_apres_demain_label = QLabel("Temp. Max après demain : --°C (API)") # Removed "Modèle" for after tomorrow
         self.temp_apres_demain_label.setObjectName("tempLabel")
         weather_layout.addWidget(self.temp_apres_demain_label)
 
-        self.prob_pluie_apres_demain_label = QLabel("Probabilité de Pluie Après-Demain: --%")
+        self.prob_pluie_apres_demain_label = QLabel("Probabilité de pluie après demain : --%")
         self.prob_pluie_apres_demain_label.setObjectName("probLabel")
         weather_layout.addWidget(self.prob_pluie_apres_demain_label)
 
-        self.humidity_apres_demain_label = QLabel("Humidité Après-Demain: --%")
-        self.humidity_apres_demain_label.setObjectName("infoLabel")
-        weather_layout.addWidget(self.humidity_apres_demain_label)
-
-        self.pressure_apres_demain_label = QLabel("Pression Après-Demain: -- hPa")
-        self.pressure_apres_demain_label.setObjectName("infoLabel")
-        weather_layout.addWidget(self.pressure_apres_demain_label)
-
-        self.wind_speed_apres_demain_label = QLabel("Vent Après-Demain: -- m/s")
+        self.wind_speed_apres_demain_label = QLabel("Vent après demain : -- m/s")
         self.wind_speed_apres_demain_label.setObjectName("infoLabel")
         weather_layout.addWidget(self.wind_speed_apres_demain_label)
 
-        self.weather_info_frame.setLayout(weather_layout)
+        # Remove humidity and pressure for "apres-demain" as per screenshot
+        # self.humidity_apres_demain_label = QLabel("Humidité Après-Demain: --%")
+        # self.humidity_apres_demain_label.setObjectName("infoLabel")
+        # weather_layout.addWidget(self.humidity_apres_demain_label)
+
+        # self.pressure_apres_demain_label = QLabel("Pression Après-Demain: -- hPa")
+        # self.pressure_apres_demain_label.setObjectName("infoLabel")
+        # weather_layout.addWidget(self.pressure_apres_demain_label)
+
+
         self.scroll_content_layout.addWidget(self.weather_info_frame)
-        
+        self.scroll_content_layout.addStretch(1) # Push content to top
+
         self.done_label = QLabel("Terminé")
         self.done_label.setAlignment(Qt.AlignCenter)
         self.done_label.setStyleSheet("color: #28a745; font-weight: bold; font-size: 16px;")
         self.scroll_content_layout.addWidget(self.done_label)
+        self.done_label.hide() # Initially hidden
 
         self.scroll_area.setWidget(self.scroll_content_widget)
         main_layout.addWidget(self.scroll_area)
-        
+
         self.clear_weather_display()
 
     def create_separator(self):
@@ -242,36 +280,50 @@ class WeatherApp(QWidget):
         return separator
 
     def start_clock(self):
-        self.update_time() 
+        self.update_time()
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_time)
-        self.timer.start(1000) 
+        self.timer.start(1000)
 
     def update_time(self):
         current_datetime = datetime.now()
-        jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
-        mois = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
-        
-        jour_semaine = jours[current_datetime.weekday()]
-        nom_mois = mois[current_datetime.month - 1]
-        
-        self.date_time_label.setText(current_datetime.strftime(f"{jour_semaine} %d {nom_mois} %Y - %H:%M:%S"))
+        # Ensure consistent format with the screenshot, "Jeu. 10 juill."
+        # This requires manually mapping month and weekday names for French
+        jours_semaine = ["Dim.", "Lun.", "Mar.", "Mer.", "Jeu.", "Ven.", "Sam."]
+        mois = [
+            "janv.", "févr.", "mars", "avril", "mai", "juin",
+            "juill.", "août", "sept.", "oct.", "nov.", "déc."
+        ]
+
+        jour_semaine_abbr = jours_semaine[current_datetime.weekday()]
+        nom_mois_abbr = mois[current_datetime.month - 1]
+
+        # Example: Jeu. 10 juill.
+        formatted_date = f"{jour_semaine_abbr}. {current_datetime.day} {nom_mois_abbr}."
+        formatted_time = current_datetime.strftime("%H:%M") # No seconds for closer match
+
+        self.date_time_label.setText(f"{formatted_time} - {formatted_date}")
+        self.date_time_label.setAlignment(Qt.AlignRight) # Ensure right alignment
 
     def clear_weather_display(self):
-        self.city_display_label.setText("Météo pour [Ville], [Pays]")
+        self.city_display_label.setText("Météo pour (Ville)") # Reset to initial placeholder
         self.temp_demain_label.setText("Temp. Max Demain: --°C (Modèle) | --°C (API)")
-        self.prob_pluie_demain_label.setText("Probabilité de Pluie Demain: --%")
-        self.humidity_demain_label.setText("Humidité Demain: --%")
-        self.pressure_demain_label.setText("Pression Demain: -- hPa")
-        self.wind_speed_demain_label.setText("Vent Demain: -- m/s")
+        self.prob_pluie_demain_label.setText("Probabilité de pluie demain : --%")
+        # self.humidity_demain_label.setText("Humidité Demain: --%") # Removed
+        # self.pressure_demain_label.setText("Pression Demain: -- hPa") # Removed
+        self.wind_speed_demain_label.setText("Vent demain : -- m/s")
 
-        self.temp_apres_demain_label.setText("Temp. Max Après-Demain: --°C")
-        self.prob_pluie_apres_demain_label.setText("Probabilité de Pluie Après-Demain: --%")
-        self.humidity_apres_demain_label.setText("Humidité Après-Demain: --%")
-        self.pressure_apres_demain_label.setText("Pression Après-Demain: -- hPa")
-        self.wind_speed_apres_demain_label.setText("Vent Après-Demain: -- m/s")
-        
-        # Réinitialiser les icônes à l'état par défaut
+        self.temp_apres_demain_label.setText("Temp. Max après demain : --°C (API)") # Removed model part
+        self.prob_pluie_apres_demain_label.setText("Probabilité de pluie après demain : --%")
+        # self.humidity_apres_demain_label.setText("Humidité Après-Demain: --%") # Removed
+        # self.pressure_apres_demain_label.setText("Pression Après-Demain: -- hPa") # Removed
+        self.wind_speed_apres_demain_label.setText("Vent après demain : -- m/s")
+
+        # Hide status and done labels initially
+        self.status_label.hide()
+        self.done_label.hide()
+
+        # Reset the weather icon
         self.set_weather_icon_display(None, self.weather_icon_label)
 
     def get_icon_pixmap(self, icon_filename, size=64):
@@ -279,88 +331,79 @@ class WeatherApp(QWidget):
         Charge une QPixmap à partir d'un fichier icône, gère les erreurs et le redimensionnement.
         """
         icon_path = os.path.join(ICONS_DIR, icon_filename)
-        print(f"Tentative de chargement de l'icône: {icon_path}")
+        # print(f"Tentative de chargement de l'icône: {icon_path}") # Debugging
 
         pixmap = QPixmap()
         if os.path.exists(icon_path) and pixmap.load(icon_path):
-            print(f"Icône chargée avec succès: {icon_filename}")
-            # Ne pas redimensionner ici, laisser setScaledContents(True) le faire dans le QLabel
-            # Ou alors, redimensionner ici à la taille exacte voulue (64x64)
+            # print(f"Icône chargée avec succès: {icon_filename}") # Debugging
             return pixmap.scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         else:
-            if not os.path.exists(icon_path):
-                print(f"Erreur: Fichier icône non trouvé: {icon_path}")
-            else:
-                print(f"Erreur: QPixmap n'a pas pu charger {icon_path}. Fichier peut-être corrompu, format non supporté, ou permissions.")
+            # print(f"Erreur: Fichier icône non trouvé ou ne peut être chargé: {icon_path}") # Debugging
             return QPixmap() # Retourne une QPixmap nulle
 
     def set_weather_icon_display(self, prob_pluie, target_label):
         """
         Définit l'icône appropriée sur le QLabel cible en fonction de la probabilité de pluie.
         """
-        # --- Étape 1: Nettoyer l'état précédent du QLabel ---
-        # Arrêter tout QMovie (GIF) s'il y en a un
+        # Clear any existing movie/pixmap
         if target_label.movie():
             target_label.movie().stop()
             target_label.setMovie(None)
-        # Effacer tout contenu (image ou texte)
         target_label.clear()
-        
-        # --- Étape 2: Gérer l'icône de chargement (GIF) ---
+
+        # Handle loading state first
         if prob_pluie == 'loading':
             loading_path = os.path.join(ICONS_DIR, 'loading.gif')
             if os.path.exists(loading_path):
                 movie = QMovie(loading_path)
                 if movie.isValid():
-                    # Utiliser la taille du QLabel pour le redimensionnement du GIF
-                    movie.setScaledSize(target_label.size()) 
+                    movie.setScaledSize(target_label.size())
                     target_label.setMovie(movie)
                     movie.start()
-                    print("GIF de chargement démarré.")
+                    self.status_label.setText("Status...") # Show "Status..." during loading
+                    self.status_label.show()
                 else:
-                    print(f"Erreur: GIF de chargement invalide: {loading_path}")
                     target_label.setText("...")
+                    self.status_label.setText("Chargement...")
+                    self.status_label.show()
             else:
-                print(f"Erreur: Fichier GIF de chargement non trouvé: {loading_path}")
                 target_label.setText("...")
+                self.status_label.setText("Chargement...")
+                self.status_label.show()
             return
 
-        # --- Étape 3: Déterminer et charger l'icône statique (PNG/SVG) ---
+        # Hide status label once loading is done
+        self.status_label.hide()
+
         prob_int = -1
         if isinstance(prob_pluie, str) and prob_pluie.endswith('%'):
             try:
                 prob_int = int(prob_pluie.replace('%', ''))
             except ValueError:
-                pass
+                pass # prob_int remains -1
 
-        icon_filename = "default.png" # Icône par défaut
+        icon_filename = "default.png" # Default icon, e.g., question mark or generic weather
 
+        # Logic for choosing icon based on probability
         if prob_int >= 70:
-            icon_filename = "heavy_rain.png"
+            icon_filename = "heavy_rain.png" # You'll need this icon
         elif prob_int >= 40:
-            icon_filename = "rain.png"
-        elif prob_int >= 0:
-            icon_filename = "sun.png"
+            icon_filename = "rain.png" # You'll need this icon
+        elif prob_int >= 0: # 0-39% chance of rain, implies sun or partial clouds
+            icon_filename = "sun.png" # You'll need this icon
 
-        # Tenter de charger le pixmap avec la taille du label
-        # Ici, nous utilisons directement la taille du label (80x80) pour la pixmap,
-        # puis setScaledContents(True) l'adaptera au label si nécessaire.
-        final_pixmap = self.get_icon_pixmap(icon_filename, size=target_label.width()) 
+        # Attempt to load the pixmap at the target label's fixed size
+        final_pixmap = self.get_icon_pixmap(icon_filename, size=target_label.width())
 
-        # --- Étape 4: Afficher le pixmap ou un indicateur d'erreur ---
         if not final_pixmap.isNull():
             target_label.setPixmap(final_pixmap)
-            print(f"Icône '{icon_filename}' affichée sur le label.")
         else:
-            # Si l'icône spécifique n'a pas pu être chargée, tenter l'icône par défaut
-            default_pixmap = self.get_icon_pixmap("default.png", size=target_label.width())
-            if not default_pixmap.isNull():
-                target_label.setPixmap(default_pixmap)
-                print("Icône par défaut affichée.")
+            # Fallback to a generic default if specific icon isn't found
+            default_fallback_pixmap = self.get_icon_pixmap("default.png", size=target_label.width())
+            if not default_fallback_pixmap.isNull():
+                target_label.setPixmap(default_fallback_pixmap)
             else:
-                target_label.setText("?")
-                print(f"Avertissement: Impossible d'afficher l'icône. Ni '{icon_filename}' ni 'default.png' n'ont pu être chargés.")
-
+                target_label.setText("?") # Show a question mark if no icon can be loaded
 
     def load_model(self):
         """Charge le modèle de prédiction le plus récent."""
@@ -388,7 +431,7 @@ class WeatherApp(QWidget):
             try:
                 day_of_year = date_prevision.timetuple().tm_yday
                 month = date_prevision.month
-                day_of_week = date_prevision.weekday() 
+                day_of_week = date_prevision.weekday()
 
                 input_data = pd.DataFrame([[
                     temp_predite_modele_prev,
@@ -400,13 +443,13 @@ class WeatherApp(QWidget):
                     day_of_week
                 ]],
                 columns=['temp_predite_modele', 'humidity_api', 'pressure_api', 'wind_speed_api', 'day_of_year', 'month', 'day_of_week'])
-                
+
                 prediction = self.model.predict(input_data)[0]
-                return round(float(prediction), 1) 
+                return round(float(prediction), 1)
             except Exception as e:
                 print(f"Erreur lors de la prédiction avec le modèle : {e}")
                 return None
-        return None 
+        return None
 
     def save_observation(self, city, date_prediction, predicted_temp_model, observed_temp_api, humidity_api, pressure_api, wind_speed_api):
         """
@@ -419,15 +462,15 @@ class WeatherApp(QWidget):
                 writer = csv.writer(f)
                 if not file_exists:
                     writer.writerow([
-                        'date_enregistrement', 'ville', 'date_prevision', 
-                        'temp_predite_modele', 'temp_observee_api', 
+                        'date_enregistrement', 'ville', 'date_prevision',
+                        'temp_predite_modele', 'temp_observee_api',
                         'humidity_api', 'pressure_api', 'wind_speed_api'
                     ])
-                
+
                 date_enregistrement = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 writer.writerow([
-                    date_enregistrement, city, date_prediction.strftime('%Y-%m-%d'), 
-                    predicted_temp_model, observed_temp_api, 
+                    date_enregistrement, city, date_prediction.strftime('%Y-%m-%d'),
+                    predicted_temp_model, observed_temp_api,
                     humidity_api, pressure_api, wind_speed_api
                 ])
             print(f"Observation sauvegardée pour {city} le {date_prediction.strftime('%Y-%m-%d')}.")
@@ -442,11 +485,18 @@ class WeatherApp(QWidget):
             return
 
         self.city_display_label.setText(f"Météo pour {city_name}...")
-        self.clear_weather_display() 
-        self.set_weather_icon_display('loading', self.weather_icon_label) 
+        self.clear_weather_display()
+        self.set_weather_icon_display('loading', self.weather_icon_label) # Show loading GIF
+        self.done_label.hide() # Hide 'Terminé' during search
 
+        # Simulate API call with a delay if needed for testing loading state
+        # QTimer.singleShot(1000, lambda: self._fetch_and_display_weather(city_name))
+        # For actual use, call directly:
+        self._fetch_and_display_weather(city_name)
+
+    def _fetch_and_display_weather(self, city_name):
         api_data = fetch_weather_data(city_name)
-        
+
         if api_data and api_data["temp_max_demain"] is not None:
             temp_api_demain = api_data.get("temp_max_demain")
             prob_pluie_demain = api_data.get("prob_pluie_demain")
@@ -456,62 +506,65 @@ class WeatherApp(QWidget):
 
             temp_api_apres_demain = api_data.get("temp_max_apres_demain")
             prob_pluie_apres_demain = api_data.get("prob_pluie_apres_demain")
-            humidity_apres_demain = api_data.get("humidity_apres_demain")
-            pressure_apres_demain = api_data.get("pressure_apres_demain")
+            # humidity_apres_demain = api_data.get("humidity_apres_demain") # Not used in display per screenshot
+            # pressure_apres_demain = api_data.get("pressure_apres_demain") # Not used in display per screenshot
             wind_speed_apres_demain = api_data.get("wind_speed_apres_demain")
 
             date_demain = datetime.now().date() + timedelta(days=1)
             date_apres_demain = datetime.now().date() + timedelta(days=2)
 
             temp_modele_demain = self.predict_with_model(
-                temp_api_demain, 
+                temp_api_demain,
                 date_demain,
-                humidity_demain, 
-                pressure_demain, 
+                humidity_demain,
+                pressure_demain,
                 wind_speed_demain
             )
-            
+
             model_status_text = "N/A (modèle non dispo)"
-            temp_modele_demain_display = temp_api_demain 
+            temp_modele_demain_display = temp_api_demain # Default to API if model fails
             if temp_modele_demain is not None:
                 temp_modele_demain_display = temp_modele_demain
                 model_status_text = "Modèle"
 
             self.city_display_label.setText(f"Météo pour {city_name}")
-            
+
             self.temp_demain_label.setText(
                 f"Temp. Max Demain: {temp_modele_demain_display}°C ({model_status_text}) | {temp_api_demain}°C (API)"
             )
-            
-            self.prob_pluie_demain_label.setText(f"Probabilité de Pluie Demain: {prob_pluie_demain if prob_pluie_demain is not None else '--'}%")
-            self.humidity_demain_label.setText(f"Humidité Demain: {humidity_demain if humidity_demain is not None else '--'}%")
-            self.pressure_demain_label.setText(f"Pression Demain: {pressure_demain if pressure_demain is not None else '--'} hPa")
-            self.wind_speed_demain_label.setText(f"Vent Demain: {wind_speed_demain if wind_speed_demain is not None else '--'} m/s")
-            
-            self.temp_apres_demain_label.setText(f"Temp. Max Après-Demain: {temp_api_apres_demain if temp_api_apres_demain is not None else '--'}°C")
-            self.prob_pluie_apres_demain_label.setText(f"Probabilité de Pluie Après-Demain: {prob_pluie_apres_demain if prob_pluie_apres_demain is not None else '--'}%")
-            self.humidity_apres_demain_label.setText(f"Humidité Après-Demain: {humidity_apres_demain if humidity_apres_demain is not None else '--'}%")
-            self.pressure_apres_demain_label.setText(f"Pression Après-Demain: {pressure_apres_demain if pressure_apres_demain is not None else '--'} hPa")
-            self.wind_speed_apres_demain_label.setText(f"Vent Après-Demain: {wind_speed_apres_demain if wind_speed_apres_demain is not None else '--'} m/s")
+
+            self.prob_pluie_demain_label.setText(f"Probabilité de pluie demain : {prob_pluie_demain if prob_pluie_demain is not None else '--'}%")
+            self.wind_speed_demain_label.setText(f"Vent demain : {wind_speed_demain if wind_speed_demain is not None else '--'} m/s")
+
+            self.temp_apres_demain_label.setText(f"Temp. Max après demain : {temp_api_apres_demain if temp_api_apres_demain is not None else '--'}°C (API)") # Explicitly API for after tomorrow
+            self.prob_pluie_apres_demain_label.setText(f"Probabilité de pluie après demain : {prob_pluie_apres_demain if prob_pluie_apres_demain is not None else '--'}%")
+            self.wind_speed_apres_demain_label.setText(f"Vent après demain : {wind_speed_apres_demain if wind_speed_apres_demain is not None else '--'} m/s")
 
             # Appliquer les icônes
             self.set_weather_icon_display(f"{prob_pluie_demain}%" if prob_pluie_demain is not None else 'N/A', self.weather_icon_label)
+            self.done_label.show() # Show 'Terminé' when data is successfully loaded
 
+            # Save observations for tomorrow
             self.save_observation(
                 city_name, date_demain, temp_modele_demain_display, temp_api_demain,
                 humidity_demain, pressure_demain, wind_speed_demain
             )
-            
+
+            # Save observations for after tomorrow (using API data for model temp)
             if temp_api_apres_demain is not None:
                 self.save_observation(
-                    city_name, date_apres_demain, temp_api_apres_demain, temp_api_apres_demain, 
-                    humidity_apres_demain, pressure_apres_demain, wind_speed_apres_demain
+                    city_name, date_apres_demain, temp_api_apres_demain, temp_api_apres_demain,
+                    api_data.get("humidity_apres_demain"), api_data.get("pressure_apres_demain"), api_data.get("wind_speed_apres_demain")
                 )
 
         else:
             self.city_display_label.setText(f"Météo pour {city_name} (Données non trouvées)")
-            self.clear_weather_display()
+            self.clear_weather_display() # Clears all labels and hides status/done
             QMessageBox.information(self, "Données Météo", f"Impossible de récupérer les données météo pour {city_name}. Vérifiez le nom de la ville ou votre clé API.")
+            self.set_weather_icon_display(None, self.weather_icon_label) # Reset icon to default/blank
+            self.status_label.hide() # Ensure status is hidden
+            self.done_label.hide() # Ensure done is hidden
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
